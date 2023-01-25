@@ -1,3 +1,5 @@
+# this is a fork for private testing only go to [CodedOre/NewCaw](https://github.com/CodedOre/NewCaw) if you want to help the project
+
 # NewCaw
 This may be the future Cawbird!
 
