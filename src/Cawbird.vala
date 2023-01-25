@@ -39,20 +39,6 @@ public class Cawbird : Adw.Application {
   }
 
   /**
-   * Property for the internal links setting.
-   */
-  protected bool internal_links_shown {
-    get {
-      return internal_links_shown_store;
-    }
-    set {
-      internal_links_shown_store = value;
-      Backend.Utils.TextFormats.set_format_flag (SHOW_QUOTE_LINKS, value);
-      Backend.Utils.TextFormats.set_format_flag (SHOW_MEDIA_LINKS, value);
-    }
-  }
-
-  /**
    * Create the object.
    */
   public Cawbird () {
@@ -85,21 +71,39 @@ public class Cawbird : Adw.Application {
     settings.bind ("trailing-tags",
                    this, "trailing-tags-shown",
                    GLib.SettingsBindFlags.DEFAULT);
-    settings.bind ("internal-links",
-                   this, "internal-links-shown",
-                   GLib.SettingsBindFlags.DEFAULT);
   }
 
   /**
    * Initialize the client and open the first window.
    */
   protected override void activate () {
-    // Initializes the backend client
-    new Backend.Client (Config.PROJECT_NAME, "https://github.com/CodedOre/NewCaw", "cawbird://authenticate");
+    Backend.Client client = new Backend.Client(Config.APPLICATION_ID,
+                                               Config.PROJECT_NAME,
+                                               "https://github.com/CodedOre/NewCaw",
+                                               "cawbird://authenticate");
 
-    // Load the session
-    Session.init (this);
-    Session.load_session.begin ();
+    // Load the previous program state
+    this.hold ();
+    client.load_state.begin ((obj, res) => {
+      try {
+        client.load_state.end (res);
+
+        // TODO: Reindroduce selected windows
+        if (client.sessions.get_n_items () > 0) {
+          foreach (Backend.Session session in client.sessions) {
+            var window = new MainWindow (this, session);
+            window.present ();
+          }
+        } else {
+          var window = new MainWindow (this, null);
+          window.present ();
+        }
+      } catch (Error e) {
+        critical (@"Failed to load program state: $(e.message)");
+      } finally {
+        this.release ();
+      }
+    });
   }
 
   /**
@@ -142,7 +146,7 @@ public class Cawbird : Adw.Application {
           string? state = uri_param ["state"];
           string? code  = uri_param ["code"];
           if (state != null && code != null) {
-            Session.instance.auth_callback (state, code);
+            Backend.Client.instance.auth_callback (state, code);
           } else {
             warning ("Failed to get authentication secrets from callback.");
           }
@@ -160,9 +164,14 @@ public class Cawbird : Adw.Application {
    * Run when the program is closed.
    */
   protected override void shutdown () {
-    Backend.Client.instance.shutdown ();
-    Session.store_session ();
-    base.shutdown ();
+    try {
+      Backend.Client.instance.store_state ();
+    } catch (Error e) {
+      error (@"Failed to store program state: $(e.message)");
+    } finally {
+      Backend.Client.instance.shutdown ();
+      base.shutdown ();
+    }
   }
 
   /**
@@ -253,10 +262,4 @@ public class Cawbird : Adw.Application {
    * Stores the trailing tags setting.
    */
   private bool trailing_tags_shown_store;
-
-  /**
-   * Stores the internal links setting.
-   */
-  private bool internal_links_shown_store;
-
 }

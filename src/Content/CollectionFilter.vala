@@ -43,18 +43,13 @@ public class CollectionFilter : Gtk.Widget {
    *
    * Used to determine a few platform-specific strings.
    */
-  public PlatformEnum displayed_platform {
+  public Backend.PlatformEnum displayed_platform {
     get {
       return set_display_platform;
     }
     set {
       set_display_platform = value;
       switch (set_display_platform) {
-        case TWITTER:
-          generic_filter.label = _("Tweets");
-          reposts_filter.label = _("Retweets");
-          break;
-
         default:
           generic_filter.label = _("Posts");
           reposts_filter.label = _("Reposts");
@@ -95,6 +90,6 @@ public class CollectionFilter : Gtk.Widget {
   /**
    * Store the display platform.
    */
-  private PlatformEnum set_display_platform;
+  private Backend.PlatformEnum set_display_platform;
 
 }

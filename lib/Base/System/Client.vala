@@ -21,72 +21,113 @@
 using GLib;
 
 /**
- * Stores basic information representing the client.
+ * The client for utilizing this backend.
  *
- * This provides information used to identify the
- * application using the backend in certain classes
- * such as Server.
+ * This class provides information about the client to other methods of the
+ * backend and provides methods to initialize and shutdown the backend during
+ * an application run.
  *
- * As such, it needs to be the first to be initialized.
+ * Before using anything else from the backend, Client must be initialized.
  */
 [SingleInstance]
-public class Backend.Client : Object {
+public partial class Backend.Client : Initable {
+
+  public signal void auth_callback (string state, string code);
 
   /**
-   * The global instance of Client.
+   * The global instance of the client.
    */
   public static Client? instance {
     get {
       if (global_instance == null) {
-        critical ("Client was not initialized!");
+        critical ("Client must be initialized first!");
       }
       return global_instance;
     }
   }
 
   /**
+   * The id of the client.
+   *
+   * Is expected to be a reverse domain and to be the
+   * same as the application id utilizing the backend.
+   */
+  public string id { get; internal set; }
+
+  /**
    * The name of the client.
-   *
-   * Used by the Mastodon backend to create an oauth application when needed.
    */
-  public string name { get; construct; }
+  public string name { get; internal set; }
 
   /**
-   * The website for the client.
+   * A website for more information on a client.
    *
-   * Used by the Mastodon backend to create an oauth application when needed.
+   * Used by backends that create OAuth applications on the
+   * fly (e.g. Mastodon) to provide a link for the user while
+   * authorizing a new session.
    */
-  public string website { get; construct; }
+  public string website { get; internal set;  }
 
   /**
-   * An optional redirect uri to speed up the authentication process.
+   * An optional redirect uri used during authentication.
    *
-   * After the user authorized the client, this uri will be called.
-   * The client can then use it to access the authentication code without
-   * the user needing to input it in the application.
+   * Can be provided to the authenticating server to automatically redirect
+   * the user from the webpage back to the client after he has authorized
+   * it on the OAuth page.
    *
    * If set to null, the out-of-band uri for a specific platform is used instead.
    */
-  public string? redirect_uri { get; construct; }
+  public string? redirect_uri { get; internal set;  }
 
   /**
-   * Constructs the client instance.
+   * All sessions that are active with this client.
+   */
+  public SessionList sessions { get; construct; }
+
+  /**
+   * All servers that are active with this client.
+   */
+  public ServerList servers { get; construct; }
+
+  /**
+   * Configures the client instance.
    *
    * @param id The identifier for the client.
    * @param name The name of the client.
    * @param website The website for the client.
    * @param redirect_uri An optional redirect uri.
    */
-  public Client (string name, string website, string? redirect_uri = null) {
-    // Construct the class
+  public Client (string id, string name, string website, string? redirect_uri = null) throws Error {
     Object (
-      name:         name,
-      website:      website,
-      redirect_uri: redirect_uri
+      id: id,
+      name: name,
+      website: website,
+      redirect_uri: redirect_uri,
+      sessions: new SessionList (),
+      servers: new ServerList ()
     );
+    init ();
 
     // Set the global instance
     global_instance = this;
+  }
+
+  /**
+   * Initializes the object after constructions.
+   *
+   * For more information view the docs for Initable.
+   *
+   * @param cancellable Allows the initialization of the class to be cancelled.
+   *
+   * @return If the object was successfully initialized.
+   *
+   * @throws Error Errors that happened while loading the account.
+   */
+  public bool init (Cancellable? cancellable = null) throws Error {
+    // Initialize the class variables
+    state_path = Path.build_filename (Environment.get_user_data_dir (), name, null);
+
+    return true;
   }
 
   /**
@@ -100,5 +141,10 @@ public class Backend.Client : Object {
    * Stores the global instance of Client.
    */
   private static Client? global_instance = null;
+
+  /**
+   * The path to the directory holding the state storage.
+   */
+  private string state_path;
 
 }

@@ -26,44 +26,12 @@ using GLib;
 public class Backend.Mastodon.Post : Backend.Post {
 
   /**
-   * Returns a Post object for a given Json.Object.
-   *
-   * If an object for the post was already created, that object is returned.
-   * Otherwise a new object will be created from the json object.
-   *
-   * @param json The Json.Object containing the specific Post.
-   */
-  public static Post from_json (Json.Object json) {
-    // Initialize the storage if needed
-    if (all_posts == null) {
-      all_posts = new HashTable <string, Post> (str_hash, str_equal);
-    }
-
-    // Attempt to retrieve the user from storage
-    string url    = json.get_string_member ("url");
-    string domain = Utils.ParseUtils.strip_domain (url);
-    string name   = json.get_string_member ("id");
-    string id     = @"$(name)@$(domain)";
-    Post?  post = all_posts.contains (id)
-                    ? all_posts [id]
-                    : null;
-
-    // Create new object if not in storage
-    if (post == null) {
-      post = new Post (json);
-      all_posts [id] = post;
-    }
-
-    // Return the object
-    return post;
-  }
-
-  /**
    * Parses an given Json.Object and creates an Post object.
    *
+   * @param session The Session this post will be managed by.
    * @param json A Json.Object retrieved from the API.
    */
-  private Post (Json.Object json) {
+  internal Post (Session session, Json.Object json) {
     // Get url to html site if available
     string post_url = ! json.get_null_member ("url")
                         ? json.get_string_member ("url")
@@ -72,9 +40,12 @@ public class Backend.Mastodon.Post : Backend.Post {
 
     // Construct object with properties
     Object (
+      // Set the session
+      session: session,
+
       // Set basic data
       id:       json.get_string_member ("id"),
-      source: ! json.get_null_member ("application")
+      source: json.has_member ("application") && ! json.get_null_member ("application")
                 ? json.get_object_member ("application").get_string_member ("name")
                 : "Undefined",
       creation_date: new DateTime.from_iso8601 (
@@ -95,7 +66,7 @@ public class Backend.Mastodon.Post : Backend.Post {
       reposted_count: (int) json.get_int_member ("reblogs_count"),
 
       // Set the author
-      author: User.from_json (json.get_object_member ("account")),
+      author: session.load_user (json.get_object_member ("account")),
 
       // Set replied_to_id
       replied_to_id: ! json.get_null_member ("in_reply_to_id")
@@ -111,7 +82,7 @@ public class Backend.Mastodon.Post : Backend.Post {
 
     // Set the referenced post
     referenced_post = ! json.get_null_member ("reblog")
-                        ? Post.from_json (json.get_object_member ("reblog"))
+                        ? session.load_post (json.get_object_member ("reblog"))
                         : null;
 
     // Get media attachments
@@ -132,24 +103,17 @@ public class Backend.Mastodon.Post : Backend.Post {
    * If the referenced post is not in local memory,
    * it will load said post from the servers.
    *
-   * @param account An account to authenticate a possible loading of the post.
-   *
    * @return The post referenced or null if none exists.
    *
-   * @throw Error Any error that might happen while loading the post.
+   * @throws Error Any error that might happen while loading the post.
    */
-  public override async Backend.Post? get_referenced_post (Backend.Account account) throws Error {
+  public override async Backend.Post? get_referenced_post () throws Error {
     return referenced_post;
   }
 
   /**
-   * Stores a reference to each post currently in memory.
-   */
-  private static HashTable <string, Post> all_posts;
-
-  /**
    * Stores the referenced post.
    */
-  private Post? referenced_post;
+  private Backend.Post? referenced_post;
 
 }

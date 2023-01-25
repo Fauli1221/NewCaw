@@ -37,19 +37,27 @@ public class MainWindow : Adw.ApplicationWindow {
   /**
    * The account currently displayed in this window.
    */
-  public Backend.Account account {
+  public Backend.User account {
     get {
-      return displayed_account;
+      return displayed_session.account;
     }
-    construct set {
-      // Set the new account
-      displayed_account = value;
+  }
 
-      if (displayed_account != null) {
+  /**
+   * The session currently displayed in this window.
+   */
+  public Backend.Session session {
+    get {
+      return displayed_session;
+    }
+    set {
+      displayed_session = value;
+
+      main_page.session = displayed_session;
+      if (displayed_session != null) {
         // Display set account
-        main_page.account = displayed_account;
         this.window_stack.set_visible_child (main_view);
-        this.title = @"$(Config.PROJECT_NAME) - @$(displayed_account.username)";
+        this.title = @"$(Config.PROJECT_NAME) - @$(displayed_session.account.username)";
       } else {
         // Or open AuthView on non-existence
         this.window_stack.set_visible_child (auth_view);
@@ -64,11 +72,11 @@ public class MainWindow : Adw.ApplicationWindow {
    * @param app The Gtk.Application for this window.
    * @param account The account to be assigned to this window, or null for an AuthView.
    */
-  public MainWindow (Gtk.Application app, Backend.Account? account = null) {
+  public MainWindow (Gtk.Application app, Backend.Session? session = null) {
     // Initializes the Object
     Object (
       application: app,
-      account:     account
+      session: session
     );
   }
 
@@ -83,8 +91,9 @@ public class MainWindow : Adw.ApplicationWindow {
         this.close ();
       } else {
         // Otherwise set the new account
-        this.account      = auth_view.account;
+        this.session = auth_view.account;
         auth_view.account = null;
+        auth_view.auth = null;
       }
     });
 #if DEBUG
@@ -194,9 +203,9 @@ public class MainWindow : Adw.ApplicationWindow {
   }
 
   /**
-   * Holds the displayed account.
+   * Holds the displayed session.
    */
-  private Backend.Account displayed_account;
+  private Backend.Session? displayed_session = null;
 
   /**
    * Counts how many MainWindows are opened.

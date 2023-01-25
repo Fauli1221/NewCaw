@@ -26,10 +26,12 @@ using GLib;
  * Used by KeyStorage and AccountManager to request the right type when
  * loading keys or data from storage without class information.
  */
-public enum PlatformEnum {
+public enum Backend.PlatformEnum {
 
+#if SUPPORT_MASTODON
   MASTODON,
-  TWITTER;
+#endif
+  NONE;
 
   /**
    * Converts the enum to a better readable string.
@@ -37,11 +39,13 @@ public enum PlatformEnum {
   public string to_string () {
     switch (this) {
 
+#if SUPPORT_MASTODON
       case MASTODON:
         return "Mastodon";
+#endif
 
-      case TWITTER:
-        return "Twitter";
+      case NONE:
+        return "None";
 
       default:
         assert_not_reached();
@@ -57,12 +61,12 @@ public enum PlatformEnum {
    */
   public static PlatformEnum from_name (string name) {
     switch (name) {
+#if SUPPORT_MASTODON
       case "Mastodon":
         return MASTODON;
-      case "Twitter":
-        return TWITTER;
+#endif
       default:
-        assert_not_reached();
+        return NONE;
     }
   }
 
@@ -73,7 +77,7 @@ public enum PlatformEnum {
    *
    * @return The enum representing the platform this server is using.
    */
-  public static PlatformEnum get_platform_for_server (Backend.Server server) {
+  public static PlatformEnum for_server (Backend.Server server) {
 #if SUPPORT_MASTODON
     // Return if using Mastodon
     if (server is Backend.Mastodon.Server) {
@@ -81,41 +85,27 @@ public enum PlatformEnum {
     }
 #endif
 
-#if SUPPORT_TWITTER
-    // Return if using Twitter
-    if (server is Backend.Twitter.Server) {
-      return TWITTER;
-    }
-#endif
-
-    // Failing if not detected any platform
-    assert_not_reached();
+    // Return NONE if no platform is applicable
+    return NONE;
   }
 
   /**
-   * Get the enum type for a Account.
+   * Get the enum type for a Session.
    *
-   * @param account The account to get the type for.
+   * @param session The session to get the type for.
    *
-   * @return The enum representing the platform this account is using.
+   * @return The enum representing the platform this session is using.
    */
-  public static PlatformEnum get_platform_for_account (Backend.Account account) {
+  public static PlatformEnum for_session (Backend.Session session) {
 #if SUPPORT_MASTODON
     // Return if using Mastodon
-    if (account is Backend.Mastodon.Account) {
+    if (session is Backend.Mastodon.Session) {
       return MASTODON;
     }
 #endif
 
-#if SUPPORT_TWITTER
-    // Return if using Twitter
-    if (account is Backend.Twitter.Account) {
-      return TWITTER;
-    }
-#endif
-
-    // Failing if not detected any platform
-    assert_not_reached();
+    // Return NONE if no platform is applicable
+    return NONE;
   }
 
   /**
@@ -125,13 +115,7 @@ public enum PlatformEnum {
    *
    * @return The enum representing the platform this user is using.
    */
-  public static PlatformEnum get_platform_for_user (Backend.User user) {
-    // Switch method if user is an account
-    if (user is Backend.Account) {
-      var account = user as Backend.Account;
-      return get_platform_for_account (account);
-    }
-
+  public static PlatformEnum for_user (Backend.User user) {
 #if SUPPORT_MASTODON
     // Return if using Mastodon
     if (user is Backend.Mastodon.User) {
@@ -139,15 +123,8 @@ public enum PlatformEnum {
     }
 #endif
 
-#if SUPPORT_TWITTER
-    // Return if using Twitter
-    if (user is Backend.Twitter.User) {
-      return TWITTER;
-    }
-#endif
-
-    // Failing if not detected any platform
-    assert_not_reached();
+    // Return NONE if no platform is applicable
+    return NONE;
   }
 
 }
