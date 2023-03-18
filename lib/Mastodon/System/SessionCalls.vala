@@ -1,6 +1,6 @@
 /* SessionCalls.vala
  *
- * Copyright 2022 Frederick Schenk
+ * Copyright 2022-2023 Frederick Schenk
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -65,14 +65,19 @@ public partial class Backend.Mastodon.Session : Backend.Session {
     // Get the id of the post
     string id = data.get_string_member ("id");
 
+    Post post;
+
     // Check if the post is already present in memory
     if (pulled_posts.contains (id)) {
-      return pulled_posts [id];
+      post = pulled_posts [id];
+      post.update_interactions (Backend.Mastodon.Post.get_interaction_data(data));
+    }
+    else {
+      // Create a new post and add it to memory
+      post = new Post (this, data);
+      pulled_posts [id] = post;
     }
 
-    // Create a new post and add it to memory
-    Post post = new Post (this, data);
-    pulled_posts [id] = post;
     return post;
   }
 
@@ -97,6 +102,50 @@ public partial class Backend.Mastodon.Session : Backend.Session {
     });
 
     return post_list;
+  }
+
+  public override async Backend.Post favourite_post (Backend.Post post) throws Error {
+    // Create the proxy call
+    Rest.ProxyCall call = proxy.new_call ();
+    call.set_method ("POST");
+    call.set_function (@"api/v1/statuses/$(post.id)/favourite");
+
+    // Send the message and return the updated post
+    Json.Node json = yield server.call (call);
+    return load_post (json.get_object ());
+  }
+
+  public override async Backend.Post unfavourite_post (Backend.Post post) throws Error {
+    // Create the proxy call
+    Rest.ProxyCall call = proxy.new_call ();
+    call.set_method ("POST");
+    call.set_function (@"api/v1/statuses/$(post.id)/unfavourite");
+
+    // Send the message and return the updated post
+    Json.Node json = yield server.call (call);
+    return load_post (json.get_object ());
+  }
+
+  public override async Backend.Post reblog_post (Backend.Post post) throws Error {
+    // Create the proxy call
+    Rest.ProxyCall call = proxy.new_call ();
+    call.set_method ("POST");
+    call.set_function (@"api/v1/statuses/$(post.id)/reblog");
+
+    // Send the message and return the reblog post
+    Json.Node json = yield server.call (call);
+    return load_post (json.get_object ());
+  }
+
+  public override async Backend.Post unreblog_post (Backend.Post post) throws Error {
+    // Create the proxy call
+    Rest.ProxyCall call = proxy.new_call ();
+    call.set_method ("POST");
+    call.set_function (@"api/v1/statuses/$(post.id)/unreblog");
+
+    // Send the message and return the unreblogged post
+    Json.Node json = yield server.call (call);
+    return load_post (json.get_object ());
   }
 
   /**
@@ -165,7 +214,6 @@ public partial class Backend.Mastodon.Session : Backend.Session {
     // Warn if the user could not be determined
     if (acct != name && homeacct != name) {
       error (@"Failed to determine user for username \"$(name)\"");
-      return null;
     }
 
     // Hand the data over to load_data

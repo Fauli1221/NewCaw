@@ -1,6 +1,6 @@
-/* PostEnums.vala
+/* CollectionPins.vala
  *
- * Copyright 2021 Frederick Schenk
+ * Copyright 2023 CodedOre <47981497+CodedOre@users.noreply.github.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -21,21 +21,19 @@
 using GLib;
 
 /**
- * Different types for a Post.
- *
- * Determines some settings when displaying this particular post.
+ * An interface for Collection providing pinned posts.
  */
-public enum Backend.PostType {
+public interface Backend.CollectionPins : Backend.Collection<Object> {
+
   /**
-   * Your normal day-to-day post.
+   * Checks if an post in the collection was pinned by the user.
+   *
+   * If the post is not in this collection, the method returns false.
+   *
+   * @param post The post to check for.
+   *
+   * @return If the checked post was pinned by the user of this timeline.
    */
-  NORMAL,
-  /**
-   * A repost from an different post.
-   */
-  REPOST,
-  /**
-   * A repost with additional content added.
-   */
-  QUOTE
+  public abstract bool is_pinned_post (Post post);
+
 }

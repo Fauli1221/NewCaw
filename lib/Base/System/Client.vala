@@ -1,6 +1,6 @@
 /* Client.vala
  *
- * Copyright 2022 Frederick Schenk
+ * Copyright 2022-2023 Frederick Schenk
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -97,7 +97,7 @@ public partial class Backend.Client : Initable {
    * @param website The website for the client.
    * @param redirect_uri An optional redirect uri.
    */
-  public Client (string id, string name, string website, string? redirect_uri = null) throws Error {
+  public Client (string id, string name, string website, string? redirect_uri = null, string state_path) {
     Object (
       id: id,
       name: name,
@@ -106,7 +106,12 @@ public partial class Backend.Client : Initable {
       sessions: new SessionList (),
       servers: new ServerList ()
     );
-    init ();
+    this.state_path = state_path;
+    try {
+      init ();
+    } catch (Error e) {
+      critical (@"Failed to initialize client: $(e.message)");
+    }
 
     // Set the global instance
     global_instance = this;
@@ -125,8 +130,6 @@ public partial class Backend.Client : Initable {
    */
   public bool init (Cancellable? cancellable = null) throws Error {
     // Initialize the class variables
-    state_path = Path.build_filename (Environment.get_user_data_dir (), name, null);
-
     return true;
   }
 

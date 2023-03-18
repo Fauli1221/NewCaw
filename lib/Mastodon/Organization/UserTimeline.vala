@@ -1,6 +1,6 @@
 /* UserTimeline.vala
  *
- * Copyright 2022 Frederick Schenk
+ * Copyright 2022-2023 Frederick Schenk
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -39,34 +39,45 @@ public class Backend.Mastodon.UserTimeline : Backend.UserTimeline {
   internal UserTimeline (Session session, Backend.User user, string[] headers = {}) {
     // Construct the object
     Object (
-      post_list: new ListStore (typeof (Object)),
       session: session,
-      user: user
+      user: user,
+      headers: headers
     );
-
-    // Add PseudoItems for the headers
-    var store    = post_list as ListStore;
-    int header_i = 0;
-    foreach (string name in headers) {
-      var item = new PseudoItem (header_i, name);
-      store.insert_sorted (item, compare_items);
-      header_i++;
-    }
   }
 
   /**
-   * Calls the API to get the posts for the Collection.
+   * Checks if an post in the collection was pinned by the user.
    *
-   * @throws Error Any error that happened while pulling the posts.
+   * If the post is not in this collection, the method returns false.
+   *
+   * @param post The post to check for.
+   *
+   * @return If the checked post was pinned by the user of this timeline.
    */
-  public override async void pull_posts () throws Error {
+  public override bool is_pinned_post (Backend.Post post) {
+    if (pinned_posts == null) {
+      return false;
+    }
+    return post in pinned_posts;
+  }
+
+  /**
+   * Calls the API to retrieve all items from this Collection.
+   *
+   * @throws Error Any error while accessing the API and pulling the items.
+   */
+  public override async void pull_items () throws Error {
+    if (pinned_posts == null) {
+      yield pull_pins ();
+    }
+
     // Create the proxy call
     Rest.ProxyCall call = session.create_call ();
     call.set_method ("GET");
     call.set_function (@"api/v1/accounts/$(user.id)/statuses");
     call.add_param ("limit", "50");
-    if (last_post_id != null) {
-      call.add_param ("min_id", last_post_id);
+    if (newest_item_id != null) {
+      call.add_param ("min_id", newest_item_id);
     }
 
     // Load the timeline
@@ -78,10 +89,38 @@ public class Backend.Mastodon.UserTimeline : Backend.UserTimeline {
     }
 
     // Load the posts in the post list
-    var store = post_list as ListStore;
-    foreach (Backend.Post post in session.load_post_list (json)) {
-      store.insert_sorted (post, compare_items);
-    }
+    add_items (session.load_post_list (json));
   }
+
+  /**
+   * Calls the API to retrieve the pinned posts from this Collection.
+   *
+   * @throws Error Any error while accessing the API and pulling the posts.
+   */
+  private async void pull_pins () throws Error {
+    // Create the proxy call
+    Rest.ProxyCall call = session.create_call ();
+    call.set_method ("GET");
+    call.set_function (@"api/v1/accounts/$(user.id)/statuses");
+    call.add_param ("pinned", "true");
+
+    // Load the timeline
+    Json.Node json;
+    try {
+      json = yield session.server.call (call);
+    } catch (Error e) {
+      throw e;
+    }
+
+    // Load the posts in the post list
+    Backend.Post[] posts = session.load_post_list (json);
+    pinned_posts = posts;
+    add_items (posts);
+  }
+
+  /**
+   * Stores the pinned posts in this collection.
+   */
+  private Backend.Post[]? pinned_posts = null;
 
 }

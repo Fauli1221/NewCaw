@@ -1,6 +1,6 @@
 /* SessionAuth.vala
  *
- * Copyright 2022 Frederick Schenk
+ * Copyright 2022-2023 Frederick Schenk
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -42,7 +42,7 @@ public class Backend.Mastodon.SessionAuth : Backend.SessionAuth {
 
     // Add an existing or new server for the set domain
     try {
-      Server? server_check = Client.instance.servers.find <string> (domain, (item, needle) => { return item.domain == needle; }) as Server;
+      Server? server_check = Client.instance.servers.find_with_needle<string> (domain, (item, needle) => { return item.domain == needle; }) as Server;
       auth_server = server_check != null
                       ? server_check
                       : yield new Server.authenticate (domain);
@@ -116,7 +116,7 @@ public class Backend.Mastodon.SessionAuth : Backend.SessionAuth {
     // Create a new session
     string session_id = Uuid.string_random ();
     try {
-      return yield Backend.Session.from_data (session_id, auth_proxy.access_token, auth_server);
+      return yield Backend.Session.from_data (session_id, auth_proxy.access_token, auth_server, false);
     } catch (Error e) {
       throw e;
     }

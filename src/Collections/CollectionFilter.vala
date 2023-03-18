@@ -1,6 +1,6 @@
 /* CollectionFilter.vala
  *
- * Copyright 2022 Frederick Schenk
+ * Copyright 2022-2023 Frederick Schenk
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -23,7 +23,7 @@ using GLib;
 /**
  * Provides the user the FilterButtons to filter posts.
  */
-[GtkTemplate (ui="/uk/co/ibboard/Cawbird/ui/Content/CollectionFilter.ui")]
+[GtkTemplate (ui="/uk/co/ibboard/Cawbird/ui/Collections/CollectionFilter.ui")]
 public class CollectionFilter : Gtk.Widget {
 
   // UI-Elements of CollectionFilter
@@ -32,11 +32,7 @@ public class CollectionFilter : Gtk.Widget {
   [GtkChild]
   private unowned FilterButton generic_filter;
   [GtkChild]
-  private unowned FilterButton replies_filter;
-  [GtkChild]
   private unowned FilterButton reposts_filter;
-  [GtkChild]
-  private unowned FilterButton media_filter;
 
   /**
    * Which platform the displayed collection is on.

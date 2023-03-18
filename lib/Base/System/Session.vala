@@ -1,6 +1,6 @@
 /* Session.vala
  *
- * Copyright 2022 Frederick Schenk
+ * Copyright 2022-2023 Frederick Schenk
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -45,12 +45,12 @@ public abstract class Backend.Session : Object {
    *
    * @throws Error Errors that happen while verifying the session by loading the account.
    */
-  internal async static Session from_data (string identifier, string access_token, Server server) throws Error {
+  internal async static Session from_data (string identifier, string access_token, Server server, bool auto_start) throws Error {
     switch (PlatformEnum.for_server (server)) {
 #if SUPPORT_MASTODON
       case MASTODON:
         try {
-          var session = new Mastodon.Session (identifier, access_token, server);
+          var session = new Mastodon.Session (identifier, access_token, server, auto_start);
           yield session.init_async ();
           return session;
         } catch (Error e) {
@@ -83,7 +83,12 @@ public abstract class Backend.Session : Object {
    *
    * This should be set once on authentication, but not modified afterwards.
    */
-  internal string identifier { get; protected set; }
+  public string identifier { get; internal set; }
+
+  /**
+   * Whether the window should be shown on startup
+   */
+  public bool auto_start { get; set; }
 
   /**
    * Retrieves an post for an specified id.
@@ -117,11 +122,59 @@ public abstract class Backend.Session : Object {
    * If a post was already pulled and is present in memory, the version
    * from memory is used, otherwise a new object for the post is created.
    *
-   * @param data The data for the post list.
+   * @param json The Json.Node containing the data.
    *
    * @return The post list created from the data.
    */
   internal abstract Post[] load_post_list (Json.Node json);
+
+  /**
+   * Favourites/likes a post.
+   *
+   * Adds the favourite/like/platform-equivalent flag to a post. If the post
+   * is already favourited/liked then this is a noop and no exception will be thrown.
+   *
+   * @param post The post to favourite
+   *
+   * @throws Error Any errors while favouriting, such as unauthorised actions, missing posts, or network issues
+   */
+  public abstract async Backend.Post favourite_post (Backend.Post post) throws Error;
+
+  /**
+   * Unfavourites/unlikes a post.
+   *
+   * Removes the favourite/like/platform-equivalent flag from a post. If the post
+   * is not favourited/liked then this is a noop and no exception will be thrown.
+   *
+   * @param post The post to unfavourite
+   *
+   * @throws Error Any errors while unfavouriting, such as unauthorised actions, missing posts, or network issues
+   */
+   public abstract async Backend.Post unfavourite_post (Backend.Post post) throws Error;
+
+  /**
+   * Reblogs/boosts/retweets a post.
+   *
+   * Reblogs a post to the user's timeline. If the post is already reblogged then this is a noop
+   * and no exception will be thrown.
+   *
+   * @param post The post to reblog
+   *
+   * @throws Error Any errors while reblogging, such as unauthorised actions, missing posts, or network issues
+   */
+   public abstract async Backend.Post reblog_post (Backend.Post post) throws Error;
+
+  /**
+   * Un-reblogs/unboosts/un-retweets a post.
+   *
+   * Removes a reblog from the user's timeline. If the post is not reblogged then this is a noop
+   * and no exception will be thrown.
+   *
+   * @param post The post to un-reblog
+   *
+   * @throws Error Any errors while un-reblogging, such as unauthorised actions, missing posts, or network issues
+   */
+   public abstract async Backend.Post unreblog_post (Backend.Post post) throws Error;
 
   /**
    * Retrieves an user for an specified id.

@@ -1,6 +1,6 @@
 /* DisplayUtils.vala
  *
- * Copyright 2021-2022 Frederick Schenk
+ * Copyright 2021-2023 Frederick Schenk
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -60,16 +60,31 @@ namespace DisplayUtils {
       }
     }
 
-    // Display time diff for longer periods
+    // Represent full date on longer timespans
+    return display_date (datetime, long_format);
+  }
+
+  /**
+   * Creates a string representing a specific DataTime.
+   *
+   * @param datetime A GLib.DateTime to be displayed.
+   * @param long_format Set's the output to be in a long format or not.
+   *
+   * @return A string showing the specified DateTime.
+   */
+  public string display_date (DateTime datetime, bool long_format = false) {
+    var nowtime = new DateTime.now ();
+
+    // Only display year if it's differs from the current one
     if (datetime.get_year () == nowtime.get_year ()) {
-      // TRANSLATORS: Full-text date format for tweets from this years - see https://valadoc.org/glib-2.0/GLib.DateTime.format.html
+      // TRANSLATORS: Full-text date format for dates from this years - see https://valadoc.org/glib-2.0/GLib.DateTime.format.html
       if (long_format) {
         return datetime.format (_("%e %B"));
       } else {
         return datetime.format (_("%e %b"));
       }
     } else {
-      // TRANSLATORS: Full-text date format for tweets from previous years - see https://valadoc.org/glib-2.0/GLib.DateTime.format.html
+      // TRANSLATORS: Full-text date format for dates from previous years - see https://valadoc.org/glib-2.0/GLib.DateTime.format.html
       if (long_format) {
         return datetime.format (_("%e %B %Y"));
       } else {
@@ -94,6 +109,21 @@ namespace DisplayUtils {
     if (! condition && widget.has_css_class (css_class)) {
       widget.remove_css_class (css_class);
     }
+  }
+
+  /**
+   * Manages the state of a button that has an style and image state toggles
+   *
+   * @param condition If this is true, the button will use the css_class and the "on" icon, else it
+   * will not use the class and will show the "off" icon
+   * @param button_content The widget for which the css class should be evaluated.
+   * @param css_class The CSS-class to be added or removed
+   * @param on_icon_name The image to use for "on" state
+   * @param off_icon_name The image to use for "off" state
+   */
+  public void conditional_button_content (bool condition, Adw.ButtonContent button_content, string css_class, string on_icon_name, string off_icon_name) {
+    button_content.icon_name = condition ? on_icon_name : off_icon_name;
+    DisplayUtils.conditional_css (condition, button_content, css_class);
   }
 
   /**
@@ -151,6 +181,24 @@ namespace DisplayUtils {
   }
 
   /**
+   * Launches a uri from a widget.
+   *
+   * Used to ease the use of Gtk.UriLauncher, which replaces Gtk.show_uri.
+   *
+   * @param uri The uri to be opened.
+   * @param widget The widget launching the uri.
+   */
+  public void launch_uri (string uri, Gtk.Widget widget) {
+    // Get the parent window of the widget
+    Gtk.Root widget_root   = widget.get_root ();
+    var      parent_window = widget_root as Gtk.Window;
+
+    // Launch the uri using UriLauncher
+    var uri_launch = new Gtk.UriLauncher (uri);
+    uri_launch.launch.begin (parent_window, null);
+  }
+
+  /**
    * Activated when a link in the text is clicked.
    *
    * @param uri The uri clicked in the label.
@@ -170,7 +218,7 @@ namespace DisplayUtils {
     }
     if (uri.has_prefix ("weblink|")) {
       string target = uri [8:];
-      Gtk.show_uri (null, target, Gdk.CURRENT_TIME);
+      launch_uri (target, widget);
     }
     return true;
   }

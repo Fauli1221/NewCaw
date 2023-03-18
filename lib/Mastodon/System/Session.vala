@@ -1,6 +1,6 @@
 /* Session.vala
  *
- * Copyright 2022 Frederick Schenk
+ * Copyright 2022-2023 Frederick Schenk
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -39,12 +39,13 @@ public partial class Backend.Mastodon.Session : AsyncInitable {
    * @param access_token The access token to make calls for this session.
    * @param server The server this session is connected to.
    */
-  internal Session (string identifier, string access_token, Backend.Server server) {
+  internal Session (string identifier, string access_token, Backend.Server server, bool auto_start) {
     // Construct the new object
     Object (
       identifier: identifier,
       access_token: access_token,
-      server: server
+      server: server,
+      auto_start: auto_start
     );
 
     // Set the proxy

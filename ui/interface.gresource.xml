@@ -15,13 +15,15 @@
     <file>Authentication/FinalPage.ui</file>
     <file>Authentication/LoadPage.ui</file>
     <file>Authentication/ServerPage.ui</file>
-    <file>Content/CollectionFilter.ui</file>
-    <file>Content/CollectionView.ui</file>
+    <file>Collections/CollectionFilter.ui</file>
+    <file>Collections/CollectionView.ui</file>
     <file>Content/PostActions.ui</file>
+    <file>Content/PostContent.ui</file>
     <file>Content/PostItem.ui</file>
     <file>Content/PostMetrics.ui</file>
     <file>Content/PostStatus.ui</file>
     <file>Content/UserCard.ui</file>
+    <file>Content/UserDataDisplay.ui</file>
     <file>Content/UserDisplay.ui</file>
     <file>Media/MediaDialog.ui</file>
     <file>Media/MediaDisplay.ui</file>
@@ -34,7 +36,6 @@
     <file>Preferences/PreferencesWindow.ui</file>
     <file>Preferences/SessionSettings.ui</file>
     <file>Preferences/SessionsPage.ui</file>
-    <file>Preferences/Examples/ExampleMastodonPost.json</file>
     <file>Widgets/BadgesBox.ui</file>
     <file>Widgets/FilterButton.ui</file>
     <file>Widgets/SessionRow.ui</file>

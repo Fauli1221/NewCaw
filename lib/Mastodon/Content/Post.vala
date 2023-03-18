@@ -1,6 +1,6 @@
 /* Post.vala
  *
- * Copyright 2021-2022 Frederick Schenk
+ * Copyright 2021-2023 Frederick Schenk
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -26,6 +26,20 @@ using GLib;
 public class Backend.Mastodon.Post : Backend.Post {
 
   /**
+   * Generates a new PostInteractionData from a given JSON.
+   */
+  internal static Backend.PostInteractionData get_interaction_data (Json.Object json) {
+    return Backend.PostInteractionData() {
+      liked_count    = (int) json.get_int_member ("favourites_count"),
+      replied_count  = (int) json.get_int_member ("replies_count"),
+      reposted_count = (int) json.get_int_member ("reblogs_count"),
+
+      is_favourited = json.get_boolean_member_with_default ("favourited", false),
+      is_reposted   = json.get_boolean_member_with_default ("reblogged", false)
+    };
+  }
+
+  /**
    * Parses an given Json.Object and creates an Post object.
    *
    * @param session The Session this post will be managed by.
@@ -36,7 +50,17 @@ public class Backend.Mastodon.Post : Backend.Post {
     string post_url = ! json.get_null_member ("url")
                         ? json.get_string_member ("url")
                         : json.get_string_member ("uri");
-    string post_domain = Utils.ParseUtils.strip_domain (post_url);
+    string post_domain   = Utils.ParseUtils.strip_domain (post_url);
+    var interaction_data = get_interaction_data (json);
+
+    // Determine the sensitivity of the post
+    bool sensitive_post  = json.get_boolean_member ("sensitive");
+    string spoiler_text  = json.get_string_member ("spoiler_text");
+    var sensitive_enum   = sensitive_post
+                             ? spoiler_text.length > 0
+                                ? PostSensitivity.ALL
+                                : PostSensitivity.MEDIA
+                             : PostSensitivity.NONE;
 
     // Construct object with properties
     Object (
@@ -56,14 +80,23 @@ public class Backend.Mastodon.Post : Backend.Post {
       // Set PostType
       post_type: json.get_null_member ("reblog") ? PostType.NORMAL : PostType.REPOST,
 
+      // Set the visibility of the post
+      sensitive: sensitive_enum,
+      spoiler:   spoiler_text,
+
+      // Set the referenced post
+      referenced_post: ! json.get_null_member ("reblog")
+                          ? session.load_post (json.get_object_member ("reblog"))
+                          : null,
+
       // Set url and domain
       url:    post_url,
       domain: post_domain,
 
       // Set metrics
-      liked_count:    (int) json.get_int_member ("favourites_count"),
-      replied_count:  (int) json.get_int_member ("replies_count"),
-      reposted_count: (int) json.get_int_member ("reblogs_count"),
+      liked_count:    interaction_data.liked_count,
+      replied_count:  interaction_data.replied_count,
+      reposted_count: interaction_data.reposted_count,
 
       // Set the author
       author: session.load_user (json.get_object_member ("account")),
@@ -71,7 +104,10 @@ public class Backend.Mastodon.Post : Backend.Post {
       // Set replied_to_id
       replied_to_id: ! json.get_null_member ("in_reply_to_id")
                        ? json.get_string_member ("in_reply_to_id")
-                       : null
+                       : null,
+
+      is_favourited: interaction_data.is_favourited,
+      is_reposted: interaction_data.is_reposted
     );
 
     // Parse the text into modules
@@ -79,11 +115,6 @@ public class Backend.Mastodon.Post : Backend.Post {
 
     // First format of the text.
     text = Backend.Utils.TextUtils.format_text (text_modules);
-
-    // Set the referenced post
-    referenced_post = ! json.get_null_member ("reblog")
-                        ? session.load_post (json.get_object_member ("reblog"))
-                        : null;
 
     // Get media attachments
     Backend.Media[] parsed_media = {};
@@ -96,24 +127,5 @@ public class Backend.Mastodon.Post : Backend.Post {
     });
     attached_media = parsed_media;
   }
-
-  /**
-   * Returns a possible post that this post referenced.
-   *
-   * If the referenced post is not in local memory,
-   * it will load said post from the servers.
-   *
-   * @return The post referenced or null if none exists.
-   *
-   * @throws Error Any error that might happen while loading the post.
-   */
-  public override async Backend.Post? get_referenced_post () throws Error {
-    return referenced_post;
-  }
-
-  /**
-   * Stores the referenced post.
-   */
-  private Backend.Post? referenced_post;
 
 }

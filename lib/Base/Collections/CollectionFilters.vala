@@ -1,6 +1,6 @@
-/* ParseUtils.vala
+/* CollectionFilters.vala
  *
- * Copyright 2022 CodedOre <47981497+CodedOre@users.noreply.github.com>
+ * Copyright 2023 Frederick Schenk
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -21,30 +21,29 @@
 using GLib;
 
 /**
- * Provides utilities used parsing the json of content.
+ * An interface for FilteredCollection providing
+ * public properties for filters of an post collection.
  */
-namespace Backend.Mastodon.Utils.ParseUtils {
+public interface Backend.PostFilters : Object {
 
   /**
-   * Get the domain from a url.
-   *
-   * @param url The url for the domain.
-   *
-   * @return The domain from the url.
+   * If generic posts should be displayed.
    */
-  private string strip_domain (string url) {
-    // Run a Regex to get the domain
-    try {
-      var regex = new Regex ("https?://(www.)?(.*?)/.*");
-      return regex.replace (
-        url,
-        url.length,
-        0,
-        "\\2"
-      );
-    } catch (RegexError e) {
-      error (@"Error while parsing domain: $(e.message)");
-    }
-  }
+  public abstract bool display_generic { get; set; }
+
+  /**
+   * If reposts should be displayed.
+   */
+  public abstract bool display_reposts { get; set; }
+
+  /**
+   * If replies should be displayed.
+   */
+  public abstract bool display_replies { get; set; }
+
+  /**
+   * If posts with media should be displayed.
+   */
+  public abstract bool display_media { get; set; }
 
 }
